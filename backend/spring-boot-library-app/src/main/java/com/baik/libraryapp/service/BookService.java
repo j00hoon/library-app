@@ -2,8 +2,10 @@ package com.baik.libraryapp.service;
 
 import com.baik.libraryapp.dao.BookRepository;
 import com.baik.libraryapp.dao.CheckoutRepository;
+import com.baik.libraryapp.dao.HistoryRepository;
 import com.baik.libraryapp.entity.Book;
 import com.baik.libraryapp.entity.Checkout;
+import com.baik.libraryapp.entity.History;
 import com.baik.libraryapp.responsemodels.ShelfCurrentLoansResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,10 +26,16 @@ public class BookService {
 
     private CheckoutRepository checkoutRepository;
 
-    public BookService(BookRepository bookRepository, CheckoutRepository checkoutRepository) {
+    private HistoryRepository historyRepository;
+
+
+
+    public BookService(BookRepository bookRepository, CheckoutRepository checkoutRepository, HistoryRepository historyRepository) {
         this.bookRepository = bookRepository;
         this.checkoutRepository = checkoutRepository;
+        this.historyRepository = historyRepository;
     }
+
 
     public Book checkoutBook(String userEmail, Long bookId) throws Exception {
 
@@ -122,6 +130,18 @@ public class BookService {
 
         bookRepository.save(book.get());
         checkoutRepository.deleteById(validateCheckout.getId());
+
+        History history = new History(
+                userEmail,
+                validateCheckout.getCheckoutDate(),
+                LocalDate.now().toString(),
+                book.get().getTitle(),
+                book.get().getAuthor(),
+                book.get().getDescription(),
+                book.get().getImg()
+        );
+
+        historyRepository.save(history);
 
     }
 
