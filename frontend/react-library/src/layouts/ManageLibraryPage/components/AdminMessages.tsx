@@ -3,48 +3,56 @@ import { useEffect, useState } from "react";
 import MessageModel from "../../../models/MessageModel";
 import { SpinnerLoading } from "../../Utils/SpinnerLoading";
 import { Pagination } from "../../Utils/Pagination";
+import { AdminMessage } from "./AdminMessage";
+import AdminMessageRequest from "../../../models/AdminMessageRequest";
 
+export const AdminMessages = () => {
 
-export const Messages = () => {
-    
     const { authState } = useOktaAuth();
+
+    // Normal Loading Pieces
     const [isLoadingMessages, setIsLoadingMessages] = useState(true);
     const [httpError, setHttpError] = useState(null);
 
-    // Messages
+    // Messages endpoint State
     const [messages, setMessages] = useState<MessageModel[]>([]);
-    
+    const [messagesPerPage, setMessagesPerPage] = useState(5);
+    const [messageId, setMessageId] = useState([]);
 
     // Pagination
-    const [messagesPerPage] = useState(5);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
+
+    // Recall useEffect
+    const [buttonSubmit, setButtonSubmit] = useState(false);
 
 
     useEffect(() => {
         const fetchUserMessages = async () => {
-            if (authState && authState?.isAuthenticated) {
-                const url = `http://localhost:8080/api/messages/search/findByUserEmail?userEmail=${authState?.accessToken?.claims.sub}&page=${currentPage - 1}&size=${messagesPerPage}`;
+            if (authState && authState.isAuthenticated) {
+                const url = `http://localhost:8080/api/messages/search/findByClosed?closed=false&page=${currentPage - 1}&size=${messagesPerPage}`;
                 const requestOptions = {
                     method: 'GET',
                     headers: {
                         Authorization: `Bearer ${authState?.accessToken?.accessToken}`,
                         'Content-Type': 'application/json'
                     }
-                };
+                }
 
                 const messagesResponse = await fetch(url, requestOptions);
                 if (!messagesResponse.ok) {
-                    throw new Error("Something went wrong fetchUserMessages");
+                    throw new Error("Something went wrong AdminMessages");
                 }
 
                 const messagesResponseJson = await messagesResponse.json();
-                
+
                 setMessages(messagesResponseJson._embedded.messages);
                 setTotalPages(messagesResponseJson.page.totalPages);
+                                
             }
 
             setIsLoadingMessages(false);
+            
         }
 
         fetchUserMessages().catch((error: any) => {
@@ -53,17 +61,14 @@ export const Messages = () => {
         })
 
         window.scrollTo(0, 0);
-    }, [authState, currentPage]);
+    }, [authState, currentPage, buttonSubmit]);
+
 
     if (isLoadingMessages) {
         return (
             <SpinnerLoading />
         );
     }
-
-
-
-
 
     if (httpError) {
         return (
@@ -73,41 +78,51 @@ export const Messages = () => {
         );
     }
 
+    
+    async function submitResponseToQuestion(mid: number, response: string) {
+        const url = `http://localhost:8080/api/messages/secure/admin/message`;
+        if (authState && authState?.isAuthenticated && mid !== null && response !== '') {
+            const messageAdminRequestModel: AdminMessageRequest = new AdminMessageRequest(mid, response);
+            const requestOptions = {
+                method: 'PUT',
+                headers: {
+                    Authorization: `Bearer ${authState?.accessToken?.accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(messageAdminRequestModel)
+            };
+
+            const messageAdminRequestModelResponse = await fetch(url, requestOptions);
+            if (!messageAdminRequestModelResponse.ok) {
+                throw new Error("Something went wrong submitResponseToQuestion");
+            }
+            
+            setButtonSubmit(!buttonSubmit);
+        }
+    }
+
+
+
+
     const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
 
+
+  
+
     return (
-        <div className='mt-2'>
+        <div className='mt-3'>
             {messages.length > 0 ? 
                 <>
-                    <h5>Current Q/A : </h5>
+                    <h5>Pending Q/A: </h5>
                     {messages.map(message => (
-                        <div key={message.mid}>
-                            <div className='card mt-2 shadow p-3 bg-body rounded'>
-                                <h5>Case #{message.mid} : {message.title}</h5>
-                                <h6>{message.userEmail}</h6>
-                                <p>{message.question}</p>
-                                <hr/>
-                                <div>
-                                    <h5>Response: </h5>
-                                    {message.response && message.adminEmail ? 
-                                        <>
-                                            <h6>{message.adminEmail} (admin)</h6>
-                                            <p>{message.response}</p>
-                                        </>
-                                        :
-                                        <p><i>Pending response. Please be patient.</i></p>
-                                    }
-                                </div>
-                            </div>
-                        </div>
+                        <AdminMessage message={message} key={message.mid} submitResponseToQuestion={submitResponseToQuestion} />
                     ))}
                 </>
                 :
-                <h5>All questions you submit will be shown here</h5>
+                <h5>No pending Q/A</h5>
             }
             {totalPages > 1 && <Pagination currentPage={currentPage} totalPages={totalPages} paginate={paginate} />}
         </div>
     );
-    
 }

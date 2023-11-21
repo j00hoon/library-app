@@ -38,5 +38,9 @@ public class Message {
     @Column(name = "closed")
     private boolean closed;
 
+    @Column(name = "mid")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long mid;
+
 
 }
