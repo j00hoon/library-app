@@ -19,6 +19,33 @@ public class AdminController {
     }
 
 
+
+
+    @PutMapping("/secure/increase/book/quantity")
+    public void increaseBookQuantity(@RequestHeader(value = "Authorization") String token,
+                                     @RequestParam(value = "bookId") Long bookId) throws Exception {
+        String userEmail = ExtractJWT.payloadJWTExtraction(token, "\"sub\"");
+//        if(userEmail == null || !userEmail.equals("admin")) {
+//            throw new Exception("Administrator only");
+//        }
+
+        adminService.increaseBookQuantity(bookId);
+    }
+
+    @PutMapping("/secure/decrease/book/quantity")
+    public void decreaseBookQuantity(@RequestHeader(value = "Authorization") String token,
+                                     @RequestParam(value = "bookId") Long bookId) throws Exception {
+        String userEmail = ExtractJWT.payloadJWTExtraction(token, "\"sub\"");
+//        if(userEmail == null || !userEmail.equals("admin")) {
+//            throw new Exception("Administrator only");
+//        }
+
+        adminService.decreaseBookQuantity(bookId);
+    }
+
+
+
+
     @PostMapping("/secure/add/book")
     public void postBook(@RequestHeader(value = "Authorization") String token,
                          @RequestBody AddBookRequest addBookRequest) throws Exception {
@@ -30,5 +57,19 @@ public class AdminController {
         adminService.postBook(addBookRequest);
 
     }
+
+
+
+    @DeleteMapping("secure/delete/book")
+    public void deleteBook(@RequestHeader(value = "Authorization") String token,
+                           @RequestParam(value = "bookId") Long bookId) throws Exception {
+        String userEmail = ExtractJWT.payloadJWTExtraction(token, "\"sub\"");
+//        if(userEmail == null || !userEmail.equals("admin")) {
+//            throw new Exception("Administrator only");
+//        }
+
+        adminService.deletBook(bookId);
+    }
+
 
 }
